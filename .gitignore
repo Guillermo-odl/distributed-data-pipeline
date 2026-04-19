@@ -1,0 +1,4 @@
+*.log
+__pycache__/
+pubsub-venv/
+pubsub_data/
