@@ -1,0 +1,16 @@
+[Unit]
+Description=BreadCrumb Backup Service
+After=network.target
+
+[Service]
+Type=simple
+User=guiller
+WorkingDirectory=/home/guiller/distributed-data-pipeline
+ExecStart=/home/guiller/pubsub-venv/bin/python /home/guiller/distributed-data-pipeline/backup.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/guiller/backup.log
+StandardError=append:/home/guiller/backup.log
+
+[Install]
+WantedBy=multi-user.target
