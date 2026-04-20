@@ -1,14 +1,11 @@
-import json 
-import time 
-from datetime import datetime 
-import requests 
-from google.cloud import pubsub_v1 
+import json
+import time
+from datetime import datetime
+import requests
+from google.cloud import pubsub_v1
 
-PROJECT_ID = "dataeng-s26-project"
+PROJECT_ID = "distributed-data-pipeline"
 TOPIC_ID = "bc_topic"
-
-publisher = pubsub_v1.PublisherClient()
-topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
 VEHICLE_IDS = [
     2901, 2903, 2905, 2907, 2912, 2914, 2917, 2919, 2925, 2926, 2928, 2937,
@@ -31,16 +28,19 @@ VEHICLE_IDS = [
     4520, 4522, 4523, 4529, 4531
 ]
 
-def main():
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
+
+def main():
     begin_wall = time.time()
     begin_timestamp = datetime.now().isoformat()
+
     total_breadcrumbs = 0
     vehicles_with_data = set()
 
     for vehicle_id in VEHICLE_IDS:
         url = f"https://busdata.cs.pdx.edu/api/getBreadCrumbs?vehicle_id={vehicle_id}"
-        # Looping through all my vehicle ID's to get data
 
         try:
             response = requests.get(url, timeout=30)
@@ -48,44 +48,35 @@ def main():
             data = response.json()
 
             if not data:
-                continue 
+                continue
+
             vehicles_with_data.add(vehicle_id)
 
             for breadcrumb in data:
                 message = json.dumps(breadcrumb).encode("utf-8")
-                publish_result = publisher.publish(topic_path, message)
-                publish_result.result()
+                future = publisher.publish(topic_path, message)
+                future.result()
                 total_breadcrumbs += 1
 
         except Exception as e:
-            print(f"Error with vehicle {vehicle_id}: {e}")
+            print(f"ERROR vehicle_id={vehicle_id}: {e}")
 
-
-    publish_result = publisher.publish(topic_path, b"", message_type="sentinel") 
-    publish_result.result()
-
+    sentinel_future = publisher.publish(topic_path, b"", message_type="sentinel")
+    sentinel_future.result()
 
     end_wall = time.time()
     end_timestamp = datetime.now().isoformat()
+
     walltime = end_wall - begin_wall
-    num_vehicles = len(vehicles_with_data)
-    throughput = total_breadcrumbs / walltime if walltime > 0 else 0
+    throughput = total_breadcrumbs / walltime if walltime > 0 else 0.0
 
     print(f"BEGIN_TIMESTAMP: {begin_timestamp}")
-    print(f"NUM_VEHICLES: {num_vehicles}")
+    print(f"NUM_VEHICLES: {len(vehicles_with_data)}")
     print(f"NUM_BREADCRUMBS: {total_breadcrumbs}")
     print(f"WALLTIME: {walltime}")
     print(f"THROUGHPUT: {throughput}")
     print(f"END_TIMESTAMP: {end_timestamp}")
 
 
-
 if __name__ == "__main__":
     main()
-    
-     
-
-     
-
-
-
