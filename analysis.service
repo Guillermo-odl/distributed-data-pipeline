@@ -1,0 +1,16 @@
+[Unit]
+Description=BreadCrumb Analysis Service
+After=network.target
+
+[Service]
+Type=simple
+User=guiller
+WorkingDirectory=/home/guiller/distributed-data-pipeline
+ExecStart=/home/guiller/pubsub-venv/bin/python /home/guiller/distributed-data-pipeline/analysis.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/guiller/analysis.log
+StandardError=append:/home/guiller/analysis.log
+
+[Install]
+WantedBy=multi-user.target
