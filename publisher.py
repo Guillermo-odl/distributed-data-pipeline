@@ -37,6 +37,7 @@ def main():
     begin_timestamp = datetime.now().isoformat()
     total_breadcrumbs = 0
     vehicles_with_data = set()
+    futures = []
 
     for vehicle_id in VEHICLE_IDS:
         url = f"https://busdata.cs.pdx.edu/api/getBreadCrumbs?vehicle_id={vehicle_id}"
@@ -53,13 +54,19 @@ def main():
 
             for breadcrumb in data:
                 message = json.dumps(breadcrumb).encode("utf-8")
-                publish_result = publisher.publish(topic_path, message)
-                publish_result.result()
+                future = publisher.publish(topic_path, message)
+                futures.append(future)
                 total_breadcrumbs += 1
 
         except Exception as e:
             print(f"Error with vehicle {vehicle_id}: {e}")
 
+    # Wait for all breadcrumb messages to be confirmed before sending sentinel
+    for future in futures:
+        try:
+            future.result()
+        except Exception as e:
+            print(f"Warning: a publish future failed: {e}")
 
     publish_result = publisher.publish(topic_path, b"", message_type="sentinel") 
     publish_result.result()
@@ -82,10 +89,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-     
-
-     
-
-
-
